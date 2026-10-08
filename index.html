@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VitoRadar Live Monitor</title>
+<style>
+:root{--sky:#EEF3F9;--blue:#4472C4;--deep:#1F3F7A;--ink:#404040;--green:#2E8B57;--amber:#D98200;--grey:#7F8FA6;--red:#C62828;--purple:#7030A0;--mon:#0E2238}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--sky:#EEF3F9;--ink:#404040}}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font:15px/1.45 "Segoe UI",Arial,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:linear-gradient(135deg,#1F3F7A,#4472C4 60%,#7BB0E4);color:#fff;padding:22px 18px 18px}
+h1{font:700 34px/1.1 "Times New Roman",Times,serif;margin:0 0 4px}
+header p{margin:0;font:italic 17px "Times New Roman",Times,serif}header small{opacity:.85}
+main{max-width:1100px;margin:0 auto;padding:14px}
+h2{font:700 20px "Times New Roman",Times,serif;color:var(--deep);margin:0 0 8px}
+section,aside>div{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(31,63,122,.12)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.bar label{display:flex;flex-direction:column;font-size:13px}
+input{border:1px solid #b8cfe2;border-radius:6px;padding:8px;font-size:15px}
+button{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:11px 18px;font-size:16px;font-weight:600;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #7BB0E4}
+.pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.chip{flex:1 1 105px;border-radius:8px;padding:8px;text-align:center;font-weight:600;font-size:13px;border:2px solid var(--blue);background:#fff;transition:.3s}
+.chip small{display:block;font-weight:400;font-size:11px}
+.chip.prop{border-style:dashed}.chip.sim{border-color:var(--purple)}
+.run .chip{background:#e6efff}.run .chip.sim{background:#f1e6f8}
+.legend{font-size:12px;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:10px;border:2px solid var(--blue);vertical-align:middle;margin-right:4px;border-radius:3px}
+.cols{display:grid;gap:14px}@media(min-width:900px){.cols{grid-template-columns:1.7fr 1fr}}
+.monitor{background:var(--mon);color:#cfe6ff;padding:12px;border:3px solid var(--mon)}
+.alarm .monitor{animation:fl .6s infinite alternate}@keyframes fl{to{border-color:var(--red);background:#2a1119}}
+@media(prefers-reduced-motion:reduce){.alarm .monitor{animation:none;border-color:var(--red)}}
+#banner{border-radius:8px;padding:9px 12px;font-weight:700;color:#fff;margin-bottom:10px;background:var(--blue)}
+.tr{position:relative;margin-bottom:6px;border-top:1px solid rgba(255,255,255,.1)}
+.tr span{position:absolute;left:6px;top:2px;font-size:12px;opacity:.85}
+canvas{width:100%;height:92px;display:block}
+.vit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vit b{display:block;font:700 34px "Times New Roman",Times,serif;color:var(--deep)}.vit small{color:#666}
+.pr{display:grid;grid-template-columns:78px 1fr 40px;gap:6px;align-items:center;font-size:13px;margin:4px 0}
+.pr div{height:10px;background:#e3eaf5;border-radius:5px;overflow:hidden}.pr div i{display:block;height:100%;width:0;background:var(--purple);transition:width .4s}
+.two{display:grid;gap:12px}@media(min-width:700px){.two{grid-template-columns:1fr 1fr}}
+.cmpc{border:2px solid #d5deec;border-radius:8px;padding:10px}.cmpc b{font-size:20px}
+.msg{padding:8px 10px;border-radius:6px;margin:5px 0;font-size:14px}
+.w{background:#fff3df}.c{background:#fde7e7;font-weight:600}.o{background:#e4f4ea}
+.note{font-size:12px;color:#666}
+
+.ward{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{border:3px solid #d5deec;border-radius:10px;padding:10px;cursor:pointer;background:#fff}
+.card.sel{border-color:var(--blue)}.card.al{animation:cf .6s infinite alternate}@keyframes cf{to{border-color:var(--red);background:#fde7e7}}
+@media(prefers-reduced-motion:reduce){.card.al{animation:none;border-color:var(--red)}}
+.card .h{display:flex;justify-content:space-between;align-items:center}.pill{color:#fff;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:700;background:var(--blue)}
+.cv{display:flex;gap:16px;margin:6px 0}.cv b{font:700 26px "Times New Roman",serif;color:var(--deep)}.cv small{display:block;font-size:11px;color:#666}
+.card canvas{height:48px;background:var(--mon);border-radius:6px}
+.m{background:#e8edf5}
+</style></head><body>
+<header><h1>VitoRadar</h1><p>Sensing breathing without touch</p><small>Team MindSpark · AI Fusion 2026 · AVS Engineering College, Dept. of ECE</small></header>
+<main>
+<section class="bar"><button id="go">Start live monitoring</button><span class="note">One patient, one continuous timeline: normal, irregular breathing, patient movement, then apnea. Turn the volume up.</span></section>
+<section><h2>Signal chain</h2>
+<div class="pipe" id="pipe">
+<div class="chip">Ku-band antenna<small>Fabricated</small></div>
+<div class="chip prop">Schottky detector<small>Proposed</small></div>
+<div class="chip prop">Active filter<small>Proposed</small></div>
+<div class="chip prop">ESP32 + FFT<small>Proposed</small></div>
+<div class="chip sim" id="aichip">Random Forest AI<small>Simulated signals</small></div>
+<div class="chip">Dashboard + alert<small>This page</small></div></div>
+<div class="legend"><span><i></i>Fabricated and measured</span><span><i style="border-style:dashed"></i>Proposed hardware</span><span><i style="border-color:#7030A0"></i>AI trained on simulated radar-like signals</span></div></section>
+<section><h2>Patient</h2><div class="ward" id="ward"></div><p class="note">Siren: apnea. Beep: irregular. Soft chime: patient moving.</p></section>
+<div class="cols">
+<section class="monitor"><div id="banner">Press Start live monitoring.</div>
+<div class="tr"><span>Raw radar signal</span><canvas id="cRaw"></canvas></div>
+<div class="tr"><span>Filtered breathing</span><canvas id="cBr"></canvas></div>
+<div class="tr"><span>Heartbeat component</span><canvas id="cHr"></canvas></div>
+<div class="tr"><span>FFT spectrum, 0 to 2.2 Hz</span><canvas id="cFft"></canvas></div></section>
+<aside>
+<div><h2>Selected bed vitals</h2><div class="vit"><div><b id="vbr">--</b><small>breaths per minute</small></div><div><b id="vhr">--</b><small>heart beats per minute</small></div><div><b id="vt">0 s</b><small>monitoring time</small></div><div><b id="vst" style="font-size:20px">Idle</b><small>AI decision</small></div></div></div>
+<div><h2>AI decision, Random Forest</h2><div id="bars"></div><p class="note" id="feat">Features: dominant frequency, amplitude, variance</p></div>
+</aside></div>
+<section><h2>False alarms when the patient moves</h2><div class="two">
+<div class="cmpc"><small>Simple threshold monitor</small><br><b id="sA">Waiting</b><p class="note">Alarms when rate is outside 8 to 25 per minute</p><p>False alarms: <b id="sF">0</b></p></div>
+<div class="cmpc" style="border-color:#4472C4"><small>VitoRadar</small><br><b id="vA">Waiting</b><p class="note">Motion class pauses the signal and sends a soft chime instead of an apnea alarm</p><p>False alarms: <b id="vF">0</b></p></div></div></section>
+<section><h2>Nurse station</h2><p class="note">Siren: apnea. Beep: irregular breathing. Soft chime: patient moving.</p><div id="nurse"><p class="note">No alerts yet.</p></div></section>
+<p class="note">All radar signals on this page are simulated. Only the Ku-band antenna is built in hardware; detector, filter and ESP32 are the next stage.</p>
+</main>
+<script>
+const RF=[[[4,0.7221,1,8],[2,0.1813,2,3],[-1,0,0,0],[0,0.335,4,7],[0,0.175,5,6],[-1,1,0,0],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[4,0.7248,1,8],[2,0.1792,2,3],[-1,0,0,0],[0,0.335,4,7],[0,0.175,5,6],[-1,1,0,0],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[2,0.1813,1,2],[-1,0,0,0],[3,1.8735,3,10],[2,1.4448,4,7],[3,0.3568,5,6],[-1,1,0,0],[-1,3,0,0],[0,0.355,8,9],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[2,0.1801,1,2],[-1,0,0,0],[3,1.8735,3,10],[3,0.3191,4,7],[3,0.2945,5,6],[-1,1,0,0],[-1,1,0,0],[1,0.0379,8,9],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[3,0.0165,1,2],[-1,0,0,0],[3,1.9227,3,10],[2,1.4558,4,7],[2,1.3629,5,6],[-1,1,0,0],[-1,1,0,0],[1,0.038,8,9],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[3,1.6579,1,8],[2,0.1801,2,3],[-1,0,0,0],[0,0.335,4,7],[1,0.0379,5,6],[-1,3,0,0],[-1,1,0,0],[-1,1,0,0],[-1,2,0,0]],[[4,0.7365,1,10],[2,0.1813,2,3],[-1,0,0,0],[2,1.4415,4,7],[1,0.0292,5,6],[-1,1,0,0],[-1,1,0,0],[3,0.3207,8,9],[-1,1,0,0],[-1,3,0,0],[-1,2,0,0]],[[2,0.1823,1,2],[-1,0,0,0],[2,2.2489,3,10],[3,0.3231,4,7],[2,1.4001,5,6],[-1,1,0,0],[-1,1,0,0],[0,0.355,8,9],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]],[[2,2.3049,1,10],[2,0.1813,2,3],[-1,0,0,0],[2,1.4787,4,7],[1,0.0291,5,6],[-1,1,0,0],[-1,1,0,0],[1,0.0357,8,9],[-1,3,0,0],[-1,1,0,0],[-1,2,0,0]]];
+const NAMES=['APNEA','IRREGULAR','MOTION','NORMAL'],LAB={APNEA:'Apnea',IRREGULAR:'Irregular',MOTION:'Motion artifact',NORMAL:'Normal',CALIBRATING:'Calibrating'};
+const FS=20,N=400,TOTAL=74;
+const TLS=[[['NORMAL',20],['IRREGULAR',14],['MOTION',8],['NORMAL',16],['APNEA',16]]];
+const COL={NORMAL:'#2E8B57',IRREGULAR:'#D98200',MOTION:'#7F8FA6',APNEA:'#C62828',CALIBRATING:'#4472C4'};
+const TXT={CALIBRATING:'Calibrating: collecting radar signal',NORMAL:'Normal: breathing and heart rate in range',IRREGULAR:'Irregular breathing detected',MOTION:'Patient moving: radar signal paused, readings on hold',APNEA:'APNEA ALERT: breathing stopped. Nurse station notified'};
+const $=id=>document.getElementById(id);
+const gauss=()=>{let u=0;for(let i=0;i<6;i++)u+=Math.random();return(u-3)*1.414};
+function stageAt(tl,t){let a=0;for(const[s,d]of tl){if(t<a+d)return s;a+=d}return null}
+function sample(st,t){const hz={NORMAL:1.2,IRREGULAR:1.5,MOTION:1.3,APNEA:1.15}[st],w=2*Math.PI;let b=0;
+if(st==='NORMAL')b=Math.sin(w*.25*t);else if(st==='IRREGULAR')b=.6*Math.sin(w*.42*t)+.3*Math.sin(w*.13*t);
+else if(st==='MOTION')b=Math.sin(w*.25*t)+2.5*Math.sin(w*.7*t)+1.5*gauss();
+return b+.12*Math.sin(w*hz*t)+.03*gauss()}
+function dft(x,f0,f1,df){const n=x.length;let mu=0;for(const v of x)mu+=v;mu/=n;const w=x.map((v,i)=>(v-mu)*(.5-.5*Math.cos(2*Math.PI*i/(n-1))));
+const F=[],M=[],K=Math.round((f1-f0)/df);for(let k=0;k<=K;k++){const f=f0+k*df,a=2*Math.PI*f/FS;let c=0,s=0;for(let i=0;i<n;i++){c+=w[i]*Math.cos(a*i);s+=w[i]*Math.sin(a*i)}F.push(f);M.push(Math.hypot(c,s))}return{F,M}}
+const amax=a=>a.indexOf(Math.max(...a));
+function ma(x){const o=[];let s=0;for(let i=0;i<x.length;i++){s+=x[i];if(i>=FS)s-=x[i-FS];if(i>=FS-1)o.push(s/FS)}return o}
+function features(x){const d=dft(x,.08,.8,.01),k=amax(d.M),sm=ma(x),n=x.length;let mu=0;for(const v of x)mu+=v;mu/=n;
+let va=0;for(const v of x)va+=(v-mu)**2;va/=n;const df=[];for(let i=1;i<n;i++)df.push(x[i]-x[i-1]);let dm=0;for(const v of df)dm+=v;dm/=df.length;let dv=0;for(const v of df)dv+=(v-dm)**2;
+return[d.F[k],d.M[k]/d.M.reduce((a,b)=>a+b,0),Math.max(...sm)-Math.min(...sm),va,Math.sqrt(dv/df.length)]}
+function predict(f){const v=[0,0,0,0];for(const T of RF){let i=0;while(T[i][0]>=0)i=f[T[i][0]]<=T[i][1]?T[i][2]:T[i][3];v[T[i][1]]++}return v.map(x=>x/RF.length)}
+let S=null,actx=null;
+function tone(f,t0,d,ty,v){if(!actx)return;const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime+t0;o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+d)}
+const chime=()=>{tone(880,0,.5,'sine',.15);tone(660,.25,.6,'sine',.15)};
+const beep=()=>{tone(740,0,.2,'square',.1);tone(740,.3,.2,'square',.1)};
+function siren(){if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.type='square';g.gain.value=.2;o.connect(g);g.connect(actx.destination);const t=actx.currentTime;for(let i=0;i<16;i++)o.frequency.setValueAtTime(i%2?1100:800,t+i*.25);o.start(t);o.stop(t+4)}
+function fit(c){const d=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*d)){c.width=Math.round(w*d);c.height=Math.round(h*d)}const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);return[g,w,h]}
+function trace(c,b,pz,p,col,rng,lab){const[g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle='rgba(255,255,255,.07)';for(let i=1;i<4;i++){g.beginPath();g.moveTo(0,h*i/4);g.lineTo(w,h*i/4);g.stroke()}
+g.fillStyle='rgba(127,143,166,.3)';for(let i=0;i<N;i++)if(pz[i])g.fillRect(i*w/N,0,w/N+1,h);
+if(lab&&pz[(p+N-1)%N]){g.fillStyle='#cfe6ff';g.font='13px sans-serif';g.fillText('Signal paused: patient moving',w/2-90,h/2)}
+g.strokeStyle=col;g.lineWidth=1.8;g.beginPath();let pen=false;for(let i=0;i<N;i++){const v=b[i];if((i>=p&&i<p+8)||isNaN(v)){pen=false;continue}const x=i*w/(N-1),y=h/2-v/rng*h/2;pen?g.lineTo(x,y):g.moveTo(x,y);pen=true}g.stroke()}
+function fftDraw(P){const[g,w,h]=fit($('cFft'));g.clearRect(0,0,w,h);if(!P||!P.spec)return;const{F,M}=P.spec,mx=Math.max(...M);
+M.forEach((m,i)=>{g.fillStyle=F[i]<=.8?'#3DDC84':'#4FC3F7';const bh=m/mx*(h-18);g.fillRect(F[i]/2.2*w,h-14-bh,Math.max(2,w/F.length-1),bh)});
+g.fillStyle='#cfe6ff';g.font='11px sans-serif';[0,.5,1,1.5,2].forEach(f=>g.fillText(f+' Hz',f/2.2*w+2,h-2));
+const k=amax(M.map((m,i)=>F[i]<=.8?m:0));g.fillText('breathing '+(F[k]*60).toFixed(0)+'/min',F[k]/2.2*w+8,14)}
+const mk=()=>new Float64Array(N).fill(NaN);
+function mkP(i){return{i,tl:TLS[i],raw:[],valid:[],B:{raw:mk(),br:mk(),hr:mk(),pz:new Uint8Array(N)},pos:0,cur:'CALIBRATING',cand:'',cn:0,br:null,hr:null,spec:null,p:[0,0,0,0],f:null,hold:0,ts:'NORMAL',sal:false,mst:0,esc:false,alertK:null,resp:false}}
+function msg(k,P,t){S.msgs.push([k,new Date().toLocaleTimeString([],{hour12:false})+' | Bed '+(P.i+1)+' - Patient '+(P.i+1)+': '+t]);
+$('nurse').innerHTML=S.msgs.slice().reverse().map(m=>'<div class="msg '+m[0]+'">'+m[1]+'</div>').join('')}
+function updCard(P){const c=$('card'+P.i);c.className='card'+(S.sel===P.i?' sel':'')+(P.cur==='APNEA'?' al':'');const pl=$('pill'+P.i);pl.textContent=LAB[P.cur];pl.style.background=COL[P.cur];
+$('b'+P.i).textContent=P.br==null?'--':Math.round(P.cur==='APNEA'?0:P.br);$('h'+P.i).textContent=P.hr==null?'--':Math.round(P.hr)}
+function updDetail(P){$('banner').textContent='Bed '+(P.i+1)+' (Patient '+(P.i+1)+'): '+TXT[P.cur];$('banner').style.background=COL[P.cur];
+$('bars').innerHTML=NAMES.map((nm,i)=>'<div class="pr"><span>'+LAB[nm]+'</span><div><i style="width:'+(P.p[i]*100)+'%"></i></div><span>'+Math.round(P.p[i]*100)+'%</span></div>').join('');
+if(P.f)$('feat').textContent='Features: frequency '+P.f[0].toFixed(2)+' Hz, amplitude '+P.f[2].toFixed(2)+', variance '+P.f[3].toFixed(3);
+$('vbr').textContent=P.br==null?'--':Math.round(P.cur==='APNEA'?0:P.br);$('vhr').textContent=P.hr==null?'--':Math.round(P.hr);$('vt').textContent=Math.floor(S.k/FS)+' s';
+$('vst').textContent=LAB[P.cur];$('vst').style.color=COL[P.cur]}
+function select(i){S.sel=i;const P=S.P[i];if(P.valid.length>=200)P.spec=dft(P.valid.slice(-200),.02,2.2,.02);S.P.forEach(updCard);updDetail(P)}
+function onChange(P,s){const prev=P.cur;P.cur=s;
+if(s==='IRREGULAR'){msg('w',P,'Irregular breathing detected. Please check.');beep()}
+if(s==='MOTION'){msg('m',P,'Patient moving, radar signal paused.');chime();P.mst=S.k;P.esc=false}
+if(s==='APNEA'){msg('c',P,'APNEA: breathing stopped. Immediate attention required.');siren();P.alertK=S.k;select(P.i)}
+if(s==='NORMAL'&&prev!=='CALIBRATING')msg('o',P,'Breathing back to normal.');
+if((s==='IRREGULAR'||s==='APNEA')&&P.ts==='MOTION'){S.vf++;$('vF').textContent=S.vf}
+if(P.i===0){$('vA').textContent=s==='APNEA'?'ALARM: apnea':s==='IRREGULAR'?'WARNING: irregular':s==='MOTION'?'Signal paused, soft chime':'OK';$('vA').style.color=COL[s]}
+updCard(P);if(S.sel===P.i)updDetail(P)}
+function analyse(P){const n=P.raw.length,v=P.valid;
+if(n>=120){const x=P.raw.slice(n-120);P.f=features(x);P.p=predict(P.f);let cls=NAMES[amax(P.p)];if(cls==='IRREGULAR'){const q=ma(x.slice(-79));if(Math.max(...q)-Math.min(...q)<.15)cls=P.cur}
+if(cls===P.cand)P.cn++;else{P.cand=cls;P.cn=1}if(P.cn>=(cls==='IRREGULAR'?7:3)&&cls!==P.cur)onChange(P,cls);
+if(P.i===0){const sd=dft(x,.03,.8,.01),sb=sd.F[amax(sd.M)]*60,pt=Math.max(...x)-Math.min(...x),al=sb<8||sb>25||pt<.5;
+$('sA').textContent=al?'ALARM: rate '+sb.toFixed(0)+'/min':'OK: '+sb.toFixed(0)+'/min';$('sA').style.color=al?'#C62828':'#2E8B57';
+if(al&&!P.sal&&P.ts==='MOTION'){S.sf++;$('sF').textContent=S.sf}P.sal=al}}
+if(v.length>=239){const d=dft(ma(v.slice(-239)),.08,.8,.01);P.br=d.F[amax(d.M)]*60}
+if(v.length>=219){const x=v.slice(-219),sm=ma(x),hp=sm.map((m,i)=>x[10+i]-m),d=dft(hp,.8,2.2,.02);P.hr=d.F[amax(d.M)]*60}
+if(S.sel===P.i&&v.length>=200)P.spec=dft(v.slice(-200),.02,2.2,.02);
+if(P.cur==='MOTION'&&!P.esc&&S.k-P.mst>=600){P.esc=true;msg('c',P,'No usable signal for 30 s. Please check the patient.');siren()}
+if(P.alertK!=null&&!P.resp&&S.k-P.alertK>=100){P.resp=true;msg('o',P,'Nurse responding (simulated).')}
+updCard(P);if(S.sel===P.i)updDetail(P)}
+function step(P){const t=S.k/FS,st=stageAt(P.tl,t);if(!st)return;P.ts=st;const x=sample(st,t+P.i*1.3);P.raw.push(x);
+if(Math.abs(x)>1.7)P.hold=40;const blk=P.cur==='MOTION'||P.hold>0;if(P.hold>0)P.hold--;
+let r=NaN,b=NaN,h=NaN;if(!blk){P.valid.push(x);r=x;const v=P.valid,n=v.length;if(n>=20){let m=0;for(let i=n-20;i<n;i++)m+=v[i];m/=20;b=m;h=v[n-11]-m}}
+const p=P.pos;P.B.raw[p]=r;P.B.br[p]=b;P.B.hr[p]=h;P.B.pz[p]=blk?1:0;P.pos=(p+1)%N}
+function loop(){if(!S)return;const target=Math.floor((performance.now()-S.t0)/1000*FS);
+while(S.k<target&&!S.done){S.P.forEach(step);S.k++;if(S.k%10===0)S.P.forEach(analyse);if(S.k>=TOTAL*FS)S.done=true}
+S.P.forEach(P=>trace($('cv'+P.i),P.B.br,P.B.pz,P.pos,COL[P.cur]==='#7F8FA6'?'#9fb0c8':'#3DDC84',1.3,false));
+const D=S.P[S.sel];trace($('cRaw'),D.B.raw,D.B.pz,D.pos,'#9fd0ff',1.8,true);trace($('cBr'),D.B.br,D.B.pz,D.pos,'#3DDC84',1.3,false);trace($('cHr'),D.B.hr,D.B.pz,D.pos,'#4FC3F7',.3,false);fftDraw(D);
+if(S.done){$('go').textContent='Run again';$('pipe').classList.remove('run');return}requestAnimationFrame(loop)}
+$('ward').innerHTML=[0].map(i=>'<div class="card" id="card'+i+'" data-i="'+i+'"><div class="h"><b>Bed '+(i+1)+'</b><span class="pill" id="pill'+i+'">Idle</span></div><div class="cv"><div><b id="b'+i+'">--</b><small>breaths/min</small></div><div><b id="h'+i+'">--</b><small>BPM</small></div></div><canvas id="cv'+i+'"></canvas></div>').join('');
+$('ward').onclick=e=>{const c=e.target.closest&&e.target.closest('.card');if(c&&S)select(+c.dataset.i)};
+$('go').onclick=()=>{try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
+S={k:0,P:[0].map(mkP),msgs:[],sf:0,vf:0,sel:0,done:false,t0:performance.now()};
+$('sF').textContent='0';$('vF').textContent='0';$('sA').textContent='Waiting';$('vA').textContent='Waiting';$('nurse').innerHTML='<p class="note">No alerts yet.</p>';$('go').textContent='Monitoring...';$('pipe').classList.add('run');S.P.forEach(updCard);updDetail(S.P[0]);requestAnimationFrame(loop)};
+</script></body></html>
